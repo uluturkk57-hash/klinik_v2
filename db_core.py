@@ -209,3 +209,132 @@ def list_treatments(conn):
     c = conn.cursor()
     c.execute("SELECT * FROM treatments ORDER BY date DESC")
     return c.fetchall()
+# -----------------------------------
+#   SATIŞ & RAPORLAR ÖZET FONKSİYONLARI
+# -----------------------------------
+
+def get_daily_sales(conn):
+    """Bugünün satışlarını getirir."""
+    c = conn.cursor()
+    c.execute("""
+        SELECT SUM(total) AS total_sales,
+               SUM(profit) AS total_profit
+        FROM sales
+        WHERE date(date) = date('now')
+    """)
+    return c.fetchone()
+
+
+def get_monthly_sales(conn):
+    """Bu ayın toplam satışlarını getirir."""
+    c = conn.cursor()
+    c.execute("""
+        SELECT SUM(total) AS total_sales,
+               SUM(profit) AS total_profit
+        FROM sales
+        WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now')
+    """)
+    return c.fetchone()
+
+
+def list_daily_transactions(conn):
+    """Bugünün tüm satış hareketlerini listeler."""
+    c = conn.cursor()
+    c.execute("""
+        SELECT sales.id, products.name, sales.qty, sales.total, sales.profit, sales.payment_type, sales.date
+        FROM sales
+        LEFT JOIN products ON products.id = sales.product_id
+        WHERE date(sales.date) = date('now')
+        ORDER BY sales.date DESC
+    """)
+    return c.fetchall()
+
+
+def list_monthly_transactions(conn):
+    """Bu ayın tüm satış hareketlerini listeler."""
+    c = conn.cursor()
+    c.execute("""
+        SELECT sales.id, products.name, sales.qty, sales.total, sales.profit, sales.payment_type, sales.date
+        FROM sales
+        LEFT JOIN products ON products.id = sales.product_id
+        WHERE strftime('%Y-%m', sales.date) = strftime('%Y-%m', 'now')
+        ORDER BY sales.date DESC
+    """)
+    return c.fetchall()
+
+
+
+# -----------------------------------
+#   SABİT GİDER ŞABLONU FONKSİYONLARI
+# -----------------------------------
+
+def create_fixed_expense_table(conn):
+    """Sabit gider şablonu (kira, eleman vs.)"""
+    c = conn.cursor()
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS fixed_expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        amount REAL NOT NULL
+    )
+    """)
+    conn.commit()
+
+
+def add_fixed_expense(conn, title, amount):
+    """Sabit gider ekler."""
+    c = conn.cursor()
+    c.execute("""
+    INSERT INTO fixed_expenses (title, amount)
+    VALUES (?, ?)
+    """, (title, amount))
+    conn.commit()
+
+
+def list_fixed_expenses(conn):
+    """Sabit gider listesini getirir."""
+    c = conn.cursor()
+    c.execute("SELECT * FROM fixed_expenses")
+    return c.fetchall()
+
+
+def apply_monthly_fixed_expenses(conn):
+    """
+    Sabit giderleri otomatik olarak o ayın gider tablosuna yazar.
+    (Her ay bir kere tuşlayarak giderleri eklemek için)
+    """
+    c = conn.cursor()
+    fixed = list_fixed_expenses(conn)
+    for row in fixed:
+        c.execute("""
+        INSERT INTO expenses (title, amount)
+        VALUES (?, ?)
+        """, (row["title"], row["amount"]))
+    conn.commit()
+
+
+
+# -----------------------------------
+#   GENEL NET KÂR HESABI
+# -----------------------------------
+
+def get_total_net_profit(conn):
+    """
+    Aşağıdaki formülle hesaplanır:
+    NET KÂR = TOPLAM ÜRÜN KÂRI + TOPLAM TEDAVİ KÂRI - TOPLAM GİDER
+    """
+    c = conn.cursor()
+
+    # Ürün satış kârı
+    c.execute("SELECT SUM(profit) AS p FROM sales")
+    p_sales = c.fetchone()["p"] or 0
+
+    # Tedavi kârı
+    c.execute("SELECT SUM(profit) AS p FROM treatments")
+    p_treat = c.fetchone()["p"] or 0
+
+    # Gider
+    c.execute("SELECT SUM(amount) AS g FROM expenses")
+    g = c.fetchone()["g"] or 0
+
+    return (p_sales + p_treat) - g
