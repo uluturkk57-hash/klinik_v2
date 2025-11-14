@@ -340,3 +340,8 @@ class ProductsPage:
 
         # Yenilemeden sonra form boşalt
         self.clear_form()
+        # -------------------------------------
+        #   ÜRÜN SİLME BUTONU
+        # -------------------------------------
+        self.btn_delete = ttk.Button(self.left, text="Ürünü Sil", command=self.delete_product)
+        self.btn_delete.pack(anchor="w", pady=5)
