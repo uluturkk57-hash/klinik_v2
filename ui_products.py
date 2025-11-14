@@ -291,3 +291,52 @@ class ProductsPage:
         # TABLOYU TIKLAMA OLAYINA BAĞLA
         # -------------------------------------
         self.table.bind("<<TreeviewSelect>>", self.on_select_product)
+    # -------------------------------------
+    # ÜRÜN SİLME
+    # -------------------------------------
+    def delete_product(self):
+        try:
+            prod_id = self.selected_id
+        except:
+            print("Ürün seçilmedi.")
+            return
+
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("DELETE FROM products WHERE id = ?", (prod_id,))
+            self.conn.commit()
+
+            self.refresh_table()
+            self.clear_form()
+
+        except Exception as e:
+            print("Silme hatası:", e)
+
+    # -------------------------------------
+    # TABLO YENİLEME (GÜNCELLEME SONRASI)
+    # -------------------------------------
+    def refresh_table(self):
+        # Tabloyu temizle
+        for row in self.table.get_children():
+            self.table.delete(row)
+
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM products ORDER BY id DESC")
+        rows = cursor.fetchall()
+
+        for r in rows:
+            self.table.insert(
+                "",
+                "end",
+                values=(
+                    r["id"],
+                    r["name"],
+                    r["buy_price"],
+                    r["sell_price"],
+                    r["stock"],
+                    r["category"],
+                )
+            )
+
+        # Yenilemeden sonra form boşalt
+        self.clear_form()
