@@ -138,4 +138,116 @@ class ProductsPage:
         for r in rows:
             self.table.insert("", "end", values=(
                 r["id"], r["name"], r["buy_price"], r["sell_price"], r["stock"], r["category"]
-            ))
+            ))     # -------------------------------------
+    # FORM SIFIRLAMA
+    # -------------------------------------
+    def clear_form(self):
+        self.entry_name.delete(0, tk.END)
+        self.entry_buy.delete(0, tk.END)
+        self.entry_sell.delete(0, tk.END)
+        self.entry_stock.delete(0, tk.END)
+        self.entry_cat.delete(0, tk.END)
+        self.entry_target.delete(0, tk.END)
+        self.label_calc.config(text="Önerilen Satış: -")
+
+    # -------------------------------------
+    # TABLODAN ÜRÜN SEÇME
+    # -------------------------------------
+    def on_select_product(self, event):
+        try:
+            selected = self.table.selection()
+            if not selected:
+                return
+
+            values = self.table.item(selected[0], "values")
+            prod_id, name, buy, sell, stock, cat = values
+
+            self.selected_id = prod_id
+
+            self.entry_name.delete(0, tk.END)
+            self.entry_name.insert(0, name)
+
+            self.entry_buy.delete(0, tk.END)
+            self.entry_buy.insert(0, buy)
+
+            self.entry_sell.delete(0, tk.END)
+            self.entry_sell.insert(0, sell)
+
+            self.entry_stock.delete(0, tk.END)
+            self.entry_stock.insert(0, stock)
+
+            self.entry_cat.delete(0, tk.END)
+            self.entry_cat.insert(0, cat)
+
+        except Exception as e:
+            print("Seçim hatası:", e)
+
+    # -------------------------------------
+    # ÜRÜN GÜNCELLE
+    # -------------------------------------
+    def update_product(self):
+        try:
+            prod_id = self.selected_id
+            name = self.entry_name.get()
+            buy = float(self.entry_buy.get())
+            sell = float(self.entry_sell.get())
+            stock = int(self.entry_stock.get())
+            cat = self.entry_cat.get()
+
+            c = self.conn.cursor()
+            c.execute("""
+            UPDATE products
+            SET name=?, buy_price=?, sell_price=?, stock=?, category=?
+            WHERE id=?
+            """, (name, buy, sell, stock, cat, prod_id))
+            self.conn.commit()
+
+            self.refresh_table()
+
+        except Exception as e:
+            print("Güncelleme hatası:", e)
+
+    # -------------------------------------
+    # STOK ARTIRMA
+    # -------------------------------------
+    def add_stock(self):
+        try:
+            prod_id = self.selected_id
+            qty = int(self.entry_stock_change.get())
+            db_core.update_stock(self.conn, prod_id, qty)
+            self.refresh_table()
+        except:
+            pass
+
+    # -------------------------------------
+    # STOK AZALTMA
+    # -------------------------------------
+    def remove_stock(self):
+        try:
+            prod_id = self.selected_id
+            qty = int(self.entry_stock_change.get())
+            db_core.update_stock(self.conn, prod_id, -qty)
+            self.refresh_table()
+        except:
+            pass
+
+    # -------------------------------------
+    # ARAMA FİLTRESİ
+    # -------------------------------------
+    def search_products(self, *args):
+        query = self.entry_search.get().lower()
+
+        for row in self.table.get_children():
+            self.table.delete(row)
+
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM products")
+        rows = cursor.fetchall()
+
+        for r in rows:
+            if query in r["name"].lower():
+                self.table.insert("", "end", values=(
+                    r["id"], r["name"], r["buy_price"], r["sell_price"],
+                    r["stock"], r["category"]
+                ))
+
