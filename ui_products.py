@@ -251,3 +251,43 @@ class ProductsPage:
                     r["stock"], r["category"]
                 ))
 
+        # -------------------------------------
+        #   EK FORM BUTONLARI ve ALANLARI
+        # -------------------------------------
+
+        # GÜNCELLE BUTONU
+        self.btn_update = ttk.Button(self.left, text="Güncelle", command=self.update_product)
+        self.btn_update.pack(anchor="w", pady=5)
+
+        # FORM SIFIRLAMA BUTONU
+        self.btn_clear = ttk.Button(self.left, text="Formu Temizle", command=self.clear_form)
+        self.btn_clear.pack(anchor="w", pady=5)
+
+        # -----------------------------
+        #   STOK DEĞİŞİKLİĞİ ALANI
+        # -----------------------------
+        ttk.Label(self.left, text="Stok Değiştir (+/-):").pack(anchor="w", pady=2)
+        self.entry_stock_change = ttk.Entry(self.left, width=10)
+        self.entry_stock_change.pack(anchor="w", pady=2)
+
+        btn_frame = ttk.Frame(self.left)
+        btn_frame.pack(anchor="w", pady=5)
+
+        ttk.Button(btn_frame, text="+ Ekle", command=self.add_stock).pack(side="left", padx=2)
+        ttk.Button(btn_frame, text="- Çıkar", command=self.remove_stock).pack(side="left", padx=2)
+
+        # -------------------------------------
+        # ARAMA KUTUSU
+        # -------------------------------------
+        search_frame = ttk.Frame(self.right)
+        search_frame.pack(fill="x", pady=5)
+
+        ttk.Label(search_frame, text="Ara:").pack(side="left")
+        self.entry_search = ttk.Entry(search_frame, width=30)
+        self.entry_search.pack(side="left", padx=5)
+        self.entry_search.bind("<KeyRelease>", self.search_products)
+
+        # -------------------------------------
+        # TABLOYU TIKLAMA OLAYINA BAĞLA
+        # -------------------------------------
+        self.table.bind("<<TreeviewSelect>>", self.on_select_product)
