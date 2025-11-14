@@ -112,3 +112,100 @@ def record_sale(conn, product_id, qty, total, profit, customer_id, payment_type)
     INSERT INTO sales (product_id, qty, total, profit, customer_id, payment_type)
     VALUES (?, ?, ?, ?, ?, ?)
     """, (product_id, qty, total, profit, customer_id, payment
+# ------------------------------
+#   MÜŞTERİ / VERESİYE FONKSİYONLARI
+# ------------------------------
+
+def add_customer(conn, name, phone):
+    c = conn.cursor()
+    c.execute("""
+    INSERT INTO customers (name, phone) VALUES (?, ?)
+    """, (name, phone))
+    conn.commit()
+
+
+def add_customer_debt(conn, customer_id, description, amount):
+    """Müşteriye borç ekler."""
+    c = conn.cursor()
+    c.execute("""
+    INSERT INTO customer_debts (customer_id, description, amount)
+    VALUES (?, ?, ?)
+    """, (customer_id, description, amount))
+    conn.commit()
+
+
+def get_customer_total_debt(conn, customer_id):
+    """Müşterinin toplam borcunu hesaplar."""
+    c = conn.cursor()
+    c.execute("""
+        SELECT SUM(amount) AS total FROM customer_debts
+        WHERE customer_id = ?
+    """, (customer_id,))
+    row = c.fetchone()
+    return row["total"] if row["total"] else 0
+
+
+def add_customer_payment(conn, customer_id, amount):
+    """Borç ödemesi ekler (eksi borç şeklinde yazılır)."""
+    c = conn.cursor()
+    c.execute("""
+    INSERT INTO customer_debts (customer_id, description, amount)
+    VALUES (?, 'Ödeme', ?)
+    """, (customer_id, -abs(amount)))
+    conn.commit()
+
+
+def get_customer_history(conn, customer_id):
+    """Müşteri tüm borç hareketlerini getirir."""
+    c = conn.cursor()
+    c.execute("""
+    SELECT description, amount, date
+    FROM customer_debts
+    WHERE customer_id = ?
+    ORDER BY date DESC
+    """, (customer_id,))
+    return c.fetchall()
+
+
+
+# ------------------------------
+#   GİDER / RAPOR FONKSİYONLARI
+# ------------------------------
+
+def add_expense(conn, title, amount):
+    c = conn.cursor()
+    c.execute("""
+    INSERT INTO expenses (title, amount)
+    VALUES (?, ?)
+    """, (title, amount))
+    conn.commit()
+
+
+def get_monthly_expenses(conn):
+    c = conn.cursor()
+    c.execute("""
+    SELECT * FROM expenses
+    WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now')
+    ORDER BY date DESC
+    """)
+    return c.fetchall()
+
+
+
+# ------------------------------
+#   TEDAVİ FONKSİYONLARI
+# ------------------------------
+
+def add_treatment(conn, name, material_cost, price, profit):
+    c = conn.cursor()
+    c.execute("""
+    INSERT INTO treatments (name, material_cost, price, profit)
+    VALUES (?, ?, ?, ?)
+    """, (name, material_cost, price, profit))
+    conn.commit()
+
+
+def list_treatments(conn):
+    c = conn.cursor()
+    c.execute("SELECT * FROM treatments ORDER BY date DESC")
+    return c.fetchall()
